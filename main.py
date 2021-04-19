@@ -38,14 +38,16 @@ async def auth(password: str = '', password_hash: str = ''):
 
 
 @app.post('/register')
-async def register(user: RegisterUser):
+def register(user: RegisterUser):
     id = len(app.users) + 1
     register_date = datetime.today()
 
     diff = len(user.name)
-    surname = user.surname.split()
-    for s in surname:
-        diff += len(s)
+    for c in user.surname:
+        if c.isalpha():
+            diff += 1
+
+    print(diff)
 
     vacc_date = register_date + timedelta(days=diff)
     register_date = register_date.strftime('%Y-%m-%d')
