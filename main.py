@@ -30,6 +30,8 @@ def get_method(request: Request):
 
 @app.get('/auth')
 async def auth(password: str = '', password_hash: str = ''):
+    if password == '' or password_hash == '':
+        return JSONResponse(status_code=401)
     code = 204 if sha512(
         password.encode()).hexdigest() == password_hash else 401
     return JSONResponse(status_code=code)
@@ -39,7 +41,6 @@ async def auth(password: str = '', password_hash: str = ''):
 async def register(user: RegisterUser):
     id = len(app.users) + 1
     register_date = datetime.today()
-    print(register_date)
     diff = len(user.name) + len(user.surname)
     vacc_date = register_date + timedelta(days=diff)
     register_date = register_date.strftime('%Y-%m-%d')
