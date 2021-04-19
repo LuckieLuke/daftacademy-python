@@ -61,4 +61,5 @@ def patient(id: int):
         return JSONResponse(status_code=400)
     if id > len(app.users):
         return JSONResponse(status_code=404)
+
     return JSONResponse(content=app.users[id-1], status_code=200)
