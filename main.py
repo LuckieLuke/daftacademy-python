@@ -42,12 +42,14 @@ def register(user: RegisterUser):
     id = len(app.users) + 1
     register_date = datetime.today()
 
-    diff = len(user.name)
-    for c in user.surname:
+    diff = 0
+    for c in user.name:
         if c.isalpha():
             diff += 1
 
-    print(diff)
+    for c in user.surname:
+        if c.isalpha():
+            diff += 1
 
     vacc_date = register_date + timedelta(days=diff)
     register_date = register_date.strftime('%Y-%m-%d')
