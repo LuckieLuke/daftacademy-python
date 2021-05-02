@@ -3,6 +3,8 @@ from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse, Plai
 from hashlib import sha512
 from pydantic import BaseModel
 from datetime import datetime, timedelta
+import random
+import string
 
 app = FastAPI()
 app.users = []
@@ -88,7 +90,7 @@ def login_session(login: str, password: str, response: Response):
         return HTTPException(status_code=401)
 
     session_token = sha512(
-        f'{login}:{password}{app.secret_key}'.encode()).hexdigest()
+        f'{"".join(random.choice(string.ascii_lowercase) for i in range(20))}{app.secret_key}'.encode()).hexdigest()
     if len(app.sessions) >= 3:
         app.sessions = app.sessions[1:]
     app.sessions.append(session_token)
@@ -103,7 +105,7 @@ def login_session(login: str, password: str, response: Response):
         return HTTPException(status_code=401)
 
     session_token = sha512(
-        f'{login}:{password}{app.secret_key}'.encode()).hexdigest()
+        f'{"".join(random.choice(string.ascii_lowercase) for i in range(20))}{app.secret_key}'.encode()).hexdigest()
 
     if len(app.tokens) >= 3:
         app.tokens = app.tokens[1:]
