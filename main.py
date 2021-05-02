@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from datetime import datetime, timedelta
 import random
 import string
+import base64
 
 app = FastAPI()
 app.users = []
@@ -85,9 +86,13 @@ def hello():
 
 
 @app.post('/login_session', status_code=201)
-def login_session(login: str, password: str, response: Response):
+def login_session(request: Request, response: Response):
+    info = request.headers.get('Authorization').split()[1].encode()
+    message = base64.b64decode(info).decode().split(':')
+
+    login, password = message[0], message[1]
     if not (login == '4dm1n' and password == 'NotSoSecurePa$$'):
-        return HTTPException(status_code=401)
+        return HTMLResponse(status_code=401)
 
     session_token = sha512(
         f'{"".join(random.choice(string.ascii_lowercase) for i in range(20))}{app.secret_key}'.encode()).hexdigest()
@@ -100,9 +105,13 @@ def login_session(login: str, password: str, response: Response):
 
 
 @app.post('/login_token', status_code=201)
-def login_session(login: str, password: str, response: Response):
+def login_session(request: Request, response: Response):
+    info = request.headers.get('Authorization').split()[1].encode()
+    message = base64.b64decode(info).decode().split(':')
+
+    login, password = message[0], message[1]
     if not (login == '4dm1n' and password == 'NotSoSecurePa$$'):
-        return HTTPException(status_code=401)
+        return HTMLResponse(status_code=401)
 
     session_token = sha512(
         f'{"".join(random.choice(string.ascii_lowercase) for i in range(20))}{app.secret_key}'.encode()).hexdigest()
@@ -117,7 +126,7 @@ def login_session(login: str, password: str, response: Response):
 
 
 @app.get('/welcome_session')
-def welcome_session(format: str = Query('plain'), session_token: str = Cookie(None)):
+def welcome_session(format: str = Query('plain'), session_token: str = Cookie('')):
     if session_token not in app.sessions:
         return HTMLResponse(status_code=401)
 
@@ -143,7 +152,7 @@ def welcome_session(format: str = Query('plain'), token: str = Query('')):
 
 
 @app.delete('/logout_session', status_code=302)
-def welcome_session(format: str = Query('plain'), session_token: str = Cookie(None)):
+def welcome_session(format: str = Query('plain'), session_token: str = Cookie('')):
     if session_token not in app.sessions:
         return HTTPException(status_code=401)
 
