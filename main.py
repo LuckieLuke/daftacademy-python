@@ -1,11 +1,14 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request, Cookie, Response, HTTPException, Query
+from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse, PlainTextResponse
 from hashlib import sha512
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 
 app = FastAPI()
 app.users = []
+app.tokens = []
+app.sessions = []
+app.secret_key = '~td(0Rk}cf:[p6=%*#x75S6$)e?[&Idxjt&1}7f[!kdGZ1S{9W9up;&Lz&L1lYd'
 
 
 class RegisterUser(BaseModel):
@@ -72,3 +75,93 @@ def patient(id: int):
         return JSONResponse(status_code=404)
 
     return JSONResponse(content=app.users[id-1], status_code=200)
+
+
+@app.get('/hello', response_class=HTMLResponse)
+def hello():
+    return f''' 
+    <h1>Hello! Today is {datetime.today().strftime('%Y-%m-%d')}</h1>
+    '''
+
+
+@app.post('/login_session', status_code=201)
+def login_session(login: str, password: str, response: Response):
+    if not (login == '4dm1n' and password == 'NotSoSecurePa$$'):
+        return HTTPException(status_code=401)
+
+    session_token = sha512(
+        f'{login}:{password}{app.secret_key}'.encode()).hexdigest()
+    if len(app.sessions) >= 3:
+        app.sessions = app.sessions[1:]
+    app.sessions.append(session_token)
+
+    response.set_cookie(key='session_token', value=session_token)
+    return {'message': 'Welcome!'}
+
+
+@app.post('/login_token', status_code=201)
+def login_session(login: str, password: str, response: Response):
+    if not (login == '4dm1n' and password == 'NotSoSecurePa$$'):
+        return HTTPException(status_code=401)
+
+    session_token = sha512(
+        f'{login}:{password}{app.secret_key}'.encode()).hexdigest()
+
+    if len(app.tokens) >= 3:
+        app.tokens = app.tokens[1:]
+    app.tokens.append(session_token)
+
+    return {'tokens': session_token}
+
+
+@app.get('/welcome_session', status_code=200)
+def welcome_session(format: str = Query('plain'), session_token: str = Cookie(None)):
+    if session_token not in app.sessions:
+        return HTTPException(status_code=401)
+
+    if format == 'json':
+        return JSONResponse(content={'message': 'Welcome!'})
+    elif format == 'html':
+        return HTMLResponse(content='<h1>Welcome!</h1>')
+    else:
+        return PlainTextResponse(content='Welcome!')
+
+
+@app.get('/welcome_token', status_code=200)
+def welcome_session(format: str = Query('plain'), tokens: str = Query('')):
+    if tokens not in app.tokens:
+        return HTTPException(status_code=401)
+
+    if format == 'json':
+        return JSONResponse(content={'message': 'Welcome!'})
+    elif format == 'html':
+        return HTMLResponse(content='<h1>Welcome!</h1>')
+    else:
+        return PlainTextResponse(content='Welcome!')
+
+
+@app.delete('/logout_session', status_code=302)
+def welcome_session(format: str = Query('plain'), session_token: str = Cookie(None)):
+    if session_token not in app.sessions:
+        return HTTPException(status_code=401)
+
+    app.sessions.remove(session_token)
+    return RedirectResponse(url=f'/logged_out?format={format}', status_code=302)
+
+
+@app.delete('/logout_token', status_code=302)
+def welcome_session(format: str = Query('plain'), tokens: str = Query('')):
+    if tokens not in app.tokens:
+        return HTTPException(status_code=401)
+
+    app.tokens.remove(tokens)
+    return RedirectResponse(url=f'/logged_out?format={format}', status_code=302)
+
+
+@app.get('/logged_out')
+def logged_out(format: str = Query('plain')):
+    if format == 'json':
+        return JSONResponse(content={"message": "Logged out!"}, status_code=200)
+    elif format == 'html':
+        return HTMLResponse(content='<h1>Logged out!</h1>')
+    return PlainTextResponse(content='Logged out!')
