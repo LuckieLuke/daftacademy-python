@@ -107,37 +107,39 @@ def login_session(login: str, password: str, response: Response):
     session_token = sha512(
         f'{"".join(random.choice(string.ascii_lowercase) for i in range(20))}{app.secret_key}'.encode()).hexdigest()
 
+    print(app.tokens)
     if len(app.tokens) >= 3:
         app.tokens = app.tokens[1:]
     app.tokens.append(session_token)
+    print(app.tokens)
 
     return {'token': session_token}
 
 
-@app.get('/welcome_session', status_code=200)
+@app.get('/welcome_session')
 def welcome_session(format: str = Query('plain'), session_token: str = Cookie(None)):
     if session_token not in app.sessions:
-        return HTTPException(status_code=401)
+        return HTMLResponse(status_code=401)
 
     if format == 'json':
-        return JSONResponse(content={'message': 'Welcome!'})
+        return JSONResponse(content={'message': 'Welcome!'}, status_code=200)
     elif format == 'html':
-        return HTMLResponse(content='<h1>Welcome!</h1>')
+        return HTMLResponse(content='<h1>Welcome!</h1>', status_code=200)
     else:
-        return PlainTextResponse(content='Welcome!')
+        return PlainTextResponse(content='Welcome!', status_code=200)
 
 
-@app.get('/welcome_token', status_code=200)
-def welcome_session(format: str = Query('plain'), tokens: str = Query('')):
-    if tokens not in app.tokens:
-        return HTTPException(status_code=401)
+@app.get('/welcome_token')
+def welcome_session(format: str = Query('plain'), token: str = Query('')):
+    if token not in app.tokens:
+        return HTMLResponse(status_code=401)
 
     if format == 'json':
-        return JSONResponse(content={'message': 'Welcome!'})
+        return JSONResponse(content={'message': 'Welcome!'}, status_code=200)
     elif format == 'html':
-        return HTMLResponse(content='<h1>Welcome!</h1>')
+        return HTMLResponse(content='<h1>Welcome!</h1>', status_code=200)
     else:
-        return PlainTextResponse(content='Welcome!')
+        return PlainTextResponse(content='Welcome!', status_code=200)
 
 
 @app.delete('/logout_session', status_code=302)
@@ -150,11 +152,11 @@ def welcome_session(format: str = Query('plain'), session_token: str = Cookie(No
 
 
 @app.delete('/logout_token', status_code=302)
-def welcome_session(format: str = Query('plain'), tokens: str = Query('')):
-    if tokens not in app.tokens:
+def welcome_session(format: str = Query('plain'), token: str = Query('')):
+    if token not in app.tokens:
         return HTTPException(status_code=401)
 
-    app.tokens.remove(tokens)
+    app.tokens.remove(token)
     return RedirectResponse(url=f'/logged_out?format={format}', status_code=302)
 
 
