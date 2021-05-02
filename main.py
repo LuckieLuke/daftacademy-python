@@ -77,11 +77,9 @@ def patient(id: int):
     return JSONResponse(content=app.users[id-1], status_code=200)
 
 
-@app.get('/hello', response_class=HTMLResponse)
+@app.get('/hello')
 def hello():
-    return f''' 
-    <h1>Hello! Today is {datetime.today().strftime('%Y-%m-%d')}</h1>
-    '''
+    return HTMLResponse(content=f'<h1>Hello! Today is {datetime.today().strftime("%Y-%m-%d")}</h1>')
 
 
 @app.post('/login_session', status_code=201)
