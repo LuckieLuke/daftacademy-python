@@ -79,7 +79,7 @@ def patient(id: int):
 
 @app.get('/hello')
 def hello():
-    return HTMLResponse(content=f'<h1>Hello! Today is {datetime.today().strftime("%Y-%m-%d")}</h1>')
+    return HTMLResponse(content=f'<h1>Hello! Today date is {datetime.today().strftime("%Y-%m-%d")}</h1>')
 
 
 @app.post('/login_session', status_code=201)
@@ -109,7 +109,7 @@ def login_session(login: str, password: str, response: Response):
         app.tokens = app.tokens[1:]
     app.tokens.append(session_token)
 
-    return {'tokens': session_token}
+    return {'token': session_token}
 
 
 @app.get('/welcome_session', status_code=200)
