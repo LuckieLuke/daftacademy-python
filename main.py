@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import random
 import string
 import base64
+import sqlite3
 
 app = FastAPI()
 app.users = []
@@ -17,6 +18,17 @@ app.secret_key = '~td(0Rk}cf:[p6=%*#x75S6$)e?[&Idxjt&1}7f[!kdGZ1S{9W9up;&Lz&L1lY
 class RegisterUser(BaseModel):
     name: str = ''
     surname: str = ''
+
+
+@app.on_event("startup")
+async def startup():
+    app.db_conn = sqlite3.connect("northwind.db")
+    app.db_conn.text_factory = lambda b: b.decode(errors="ignore")
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    app.db_conn.close()
 
 
 @app.get('/')
@@ -176,3 +188,80 @@ def logged_out(format: str = Query('plain')):
     elif format == 'html':
         return HTMLResponse(content='<h1>Logged out!</h1>')
     return PlainTextResponse(content='Logged out!')
+
+
+@app.get('/categories')
+async def categories():
+    cursor = app.db_conn.cursor()
+    categories = cursor.execute(
+        'SELECT CategoryID, CategoryName from Categories').fetchall()
+    return {
+        'categories': [{'id': x[0], 'name': x[1]} for x in categories]
+    }
+
+
+@app.get('/customers')
+async def customers():
+    cursor = app.db_conn.cursor()
+    customers = cursor.execute(
+        'SELECT CustomerID, CompanyName, Address, PostalCode, City, Country from Customers').fetchall()
+    return {
+        'customers': [
+            {
+                'id': x[0],
+                'name': x[1],
+                'full_address': f'{x[2]} {x[3]} {x[4]} {x[5]}'
+            } for x in customers
+        ]
+    }
+
+
+@app.get('/products/{id}')
+async def customers(id: int):
+    cursor = app.db_conn.cursor()
+    max_id = cursor.execute(
+        'SELECT ProductID FROM Products ORDER BY ProductID DESC LIMIT 1').fetchone()[0]
+
+    if id > max_id or id < 1:
+        raise HTTPException(404)
+
+    product = cursor.execute(
+        'SELECT ProductID, ProductName FROM Products WHERE ProductId = ?', (id,)).fetchone()
+    return {'id': product[0], 'name': product[1]}
+
+
+@app.get('/employees')
+async def employees(limit: int = Query(-1), offset: int = Query(0), order: str = Query('')):
+    cursor = app.db_conn.cursor()
+    base = 'SELECT EmployeeID, FirstName, LastName, City FROM Employees'
+    if order in ['first_name', 'last_name', 'city']:
+        base += f" ORDER BY {''.join([w[0].upper() + w[1:] for w in order.split('_')])}"
+    base += f' LIMIT {limit} OFFSET {offset}'
+    employees = cursor.execute(base).fetchall()
+    return {
+        'employees': [
+            {
+                'id': employee[0],
+                'first_name': employee[1],
+                'last_name': employee[2],
+                'city': employee[3]
+            }
+            for employee in employees]
+    }
+
+
+@app.get('/products_extended')
+async def products_ext():
+    cursor = app.db_conn.cursor()
+    products = cursor.execute(
+        'SELECT ProductID, ProductName, Categories.CategoryName AS CategoryName, Suppliers.CompanyName AS CompanyName FROM Products JOIN Categories ON Products.CategoryID = Categories.CategoryID JOIN Suppliers ON Products.SupplierID = Suppliers.SupplierID').fetchall()
+    return {
+        'products_extended': [
+            {
+                'id': product[0],
+                'name': product[1],
+                'category': product[2],
+                'supplier': product[3]
+            }
+            for product in products]
+    }
