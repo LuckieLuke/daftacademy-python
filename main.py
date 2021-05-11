@@ -236,6 +236,8 @@ async def employees(limit: int = Query(-1), offset: int = Query(0), order: str =
     base = 'SELECT EmployeeID, FirstName, LastName, City FROM Employees'
     if order in ['first_name', 'last_name', 'city']:
         base += f" ORDER BY {''.join([w[0].upper() + w[1:] for w in order.split('_')])}"
+    else:
+        raise HTTPException(400)
     base += f' LIMIT {limit} OFFSET {offset}'
     employees = cursor.execute(base).fetchall()
     return {
@@ -264,4 +266,27 @@ async def products_ext():
                 'supplier': product[3]
             }
             for product in products]
+    }
+
+
+@app.get('/products/{id}/orders')
+async def orders(id: int):
+    cursor = app.db_conn.cursor()
+
+    max_id = cursor.execute(
+        'SELECT ProductID FROM Products ORDER BY ProductID DESC LIMIT 1').fetchone()[0]
+
+    if id > max_id or id < 1:
+        raise HTTPException(404)
+
+    orders = cursor.execute('SELECT od.OrderID, od.UnitPrice, od.Quantity, od.Discount, c.CompanyName FROM "Order Details" od JOIN Orders o ON od.OrderID = o.OrderID JOIN Customers c ON o.CustomerID = c.CustomerID WHERE od.ProductID = ?', (id,)).fetchall()
+    return {
+        'orders': [
+            {
+                'id': order[0],
+                'customer': order[4],
+                'quantity': order[2],
+                'total_price': float("{:.2f}".format((order[1] * order[2]) - (order[3] * (order[1] * order[2]))))
+            }
+            for order in orders]
     }
