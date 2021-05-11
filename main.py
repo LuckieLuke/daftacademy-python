@@ -20,6 +20,10 @@ class RegisterUser(BaseModel):
     surname: str = ''
 
 
+class Category(BaseModel):
+    name: str = ''
+
+
 @app.on_event("startup")
 async def startup():
     app.db_conn = sqlite3.connect("northwind.db")
@@ -198,6 +202,51 @@ async def categories():
     return {
         'categories': [{'id': x[0], 'name': x[1]} for x in categories]
     }
+
+
+@app.post('/categories', status_code=201)
+async def categories(category: Category):
+    cursor = app.db_conn.execute(
+        'INSERT INTO Categories (CategoryName) VALUES (?)', (category.name,))
+    app.db_conn.commit()
+    new_category_id = cursor.lastrowid
+    app.db_conn.row_factory = sqlite3.Row
+    cat = app.db_conn.execute(
+        'SELECT CategoryID AS id, CategoryName AS name FROM Categories WHERE CategoryID = ?', (new_category_id,)).fetchone()
+    return cat
+
+
+@app.put('/categories/{id}', status_code=200)
+async def categories(id: int, category: Category):
+    categories = app.db_conn.execute(
+        'SELECT CategoryID FROM Categories WHERE CategoryID = ?', (id,)).fetchall()
+
+    if len(categories) == 0:
+        raise HTTPException(404)
+
+    app.db_conn.execute(
+        'UPDATE Categories SET CategoryName = ? WHERE CategoryID = ?', (category.name, id,))
+    app.db_conn.commit()
+
+    app.db_conn.row_factory = sqlite3.Row
+    cat = app.db_conn.execute(
+        'SELECT CategoryID AS id, CategoryName AS name FROM Categories WHERE CategoryID = ?', (id,)).fetchone()
+    return cat
+
+
+@app.delete('/categories/{id}', status_code=200)
+async def categories(id: int):
+    categories = app.db_conn.execute(
+        'SELECT CategoryID FROM Categories WHERE CategoryID = ?', (id,)).fetchall()
+
+    if len(categories) == 0:
+        raise HTTPException(404)
+
+    cursor = app.db_conn.execute(
+        'DELETE FROM Categories WHERE CategoryID = ?', (id,))
+    app.db_conn.commit()
+
+    return {'deleted': cursor.rowcount}
 
 
 @app.get('/customers')
