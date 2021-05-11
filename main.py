@@ -204,13 +204,13 @@ async def categories():
 async def customers():
     cursor = app.db_conn.cursor()
     customers = cursor.execute(
-        'SELECT CustomerID, CompanyName, Address, PostalCode, City, Country from Customers').fetchall()
+        "SELECT CustomerID, CompanyName, (COALESCE(Address, '') || ' ' || COALESCE(PostalCode, '') || ' ' || COALESCE(City, '') || ' ' || COALESCE(Country, '')) from Customers ORDER BY UPPER(CustomerID)").fetchall()
     return {
         'customers': [
             {
                 'id': x[0],
                 'name': x[1],
-                'full_address': f'{x[2].strip()} {x[3].strip()} {x[4].strip()} {x[5].strip()}'
+                'full_address': x[2]
             } for x in customers
         ]
     }
