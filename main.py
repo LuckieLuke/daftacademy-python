@@ -210,7 +210,7 @@ async def customers():
             {
                 'id': x[0],
                 'name': x[1],
-                'full_address': f'{x[2]} {x[3]} {x[4]} {x[5]}'
+                'full_address': f'{x[2].strip()} {x[3].strip()} {x[4].strip()} {x[5].strip()}'
             } for x in customers
         ]
     }
@@ -236,7 +236,7 @@ async def employees(limit: int = Query(-1), offset: int = Query(0), order: str =
     base = 'SELECT EmployeeID, FirstName, LastName, City FROM Employees'
     if order in ['first_name', 'last_name', 'city']:
         base += f" ORDER BY {''.join([w[0].upper() + w[1:] for w in order.split('_')])}"
-    else:
+    elif order != '':
         raise HTTPException(400)
     base += f' LIMIT {limit} OFFSET {offset}'
     employees = cursor.execute(base).fetchall()
